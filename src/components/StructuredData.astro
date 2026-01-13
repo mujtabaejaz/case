@@ -60,14 +60,14 @@ function generateStructuredData(type: string, data: Record<string, any>) {
         '@context': baseContext,
         '@type': 'CreativeWork',
         name: data.title,
-        description: data.description || data.outcomeSummary,
+        description: data.description || data.outcomeSummary || data.summary,
         author: {
           '@type': 'Person',
           name: data.authorName || siteConfig.author.name,
         },
         dateCreated: data.year ? `${data.year}-01-01` : undefined,
-        keywords: data.techStack?.join(', '),
-        about: data.problem,
+        keywords: data.techStack?.join(', ') || data.tools?.join(', '),
+        about: data.problem || data.challenge || data.brief,
         result: data.impact,
       };
     

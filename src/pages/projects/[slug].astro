@@ -2,24 +2,28 @@
 /**
  * Case Study Detail Page
  * 
- * Dynamic route that displays a comprehensive project case study following a structured
- * narrative format. Presents the complete story of a project from problem identification
- * through to measurable impact and learnings.
+ * Dynamic route that displays a comprehensive project case study with flexible
+ * structure supporting multiple portfolio types (engineering, design, creative, etc.).
  * 
- * Narrative Structure (enforced order):
- * 1. Overview - High-level project summary
- * 2. Problem - Challenge being addressed
- * 3. Constraints - Limitations and boundaries
- * 4. Approach - Solution strategy
- * 5. Key Decisions - Technical choices with reasoning and alternatives
- * 6. Tech Stack - Technologies used
- * 7. Result & Impact - Quantitative metrics and qualitative outcomes
- * 8. Learnings - Insights and takeaways
+ * Flexible Narrative Structure (sections render conditionally):
+ * 1. Hero Image (if provided)
+ * 2. Overview - High-level project summary
+ * 3. Problem/Challenge/Brief - Context being addressed
+ * 4. Research - User research and findings (UX/Design)
+ * 5. Constraints/Requirements - Limitations and boundaries
+ * 6. Approach/Process - Solution strategy
+ * 7. Key Decisions OR Highlights - Technical choices or project highlights
+ * 8. Tools/Tech Stack - Technologies used
+ * 9. Gallery - Project images
+ * 10. Result & Impact - Quantitative metrics and qualitative outcomes
+ * 11. Learnings/Reflections - Insights and takeaways
  * 
  * Features:
  * - Static path generation for all project entries
- * - Structured case study presentation
- * - Impact metrics grid (when available)
+ * - Conditional section rendering based on available data
+ * - Visual media support (hero image, gallery, video)
+ * - Impact metrics with before/after comparison
+ * - Multiple terminology support for different portfolio types
  * - Reading time calculation
  * - Structured data for SEO
  * - Optional additional markdown content
@@ -41,14 +45,11 @@ import RelatedContent from '../../components/RelatedContent.astro';
 import ImpactMetrics from '../../components/ImpactMetrics.astro';
 import { getCollection, getEntry, render } from 'astro:content';
 import { calculateReadingTime, formatReadingTime } from '../../utils/readingTime';
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 
 /**
  * Generates static paths for all project entries
- * 
- * Queries the projects content collection and creates a route for each entry
- * using the entry ID as the slug parameter.
- * 
- * @returns Array of path objects with params
  */
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -59,18 +60,52 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 
-/**
- * Retrieves the specific project entry by slug
- * 
- * Redirects to 404 if the project is not found.
- */
 const project = await getEntry('projects', slug!);
 
 if (!project) {
   return Astro.redirect('/404');
 }
 
-// Render the content (v6-compatible method)
+// Import hero image dynamically if it exists
+let heroImageImport: any = null;
+if (project.data.heroImage) {
+  try {
+    const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/**/*.{png,jpg,jpeg,webp,avif,gif}');
+    const imagePath = `/src/assets/${project.data.heroImage.replace('../../assets/', '')}`;
+    if (images[imagePath]) {
+      heroImageImport = await images[imagePath]();
+    }
+  } catch (e) {
+    console.warn(`Could not load hero image: ${project.data.heroImage}`);
+  }
+}
+
+// Import gallery images dynamically if they exist
+const galleryImports: Array<{ src: string; alt: string; caption?: string; imported: any }> = [];
+if (project.data.gallery) {
+  const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/**/*.{png,jpg,jpeg,webp,avif,gif}');
+  for (const img of project.data.gallery) {
+    try {
+      // Check if it's a relative path to assets
+      if (img.src.startsWith('../../assets/')) {
+        const imagePath = `/src/assets/${img.src.replace('../../assets/', '')}`;
+        if (images[imagePath]) {
+          const imported = await images[imagePath]();
+          galleryImports.push({ ...img, imported });
+        } else {
+          galleryImports.push({ ...img, imported: null });
+        }
+      } else {
+        // Keep as-is for public folder or external URLs
+        galleryImports.push({ ...img, imported: null });
+      }
+    } catch (e) {
+      console.warn(`Could not load gallery image: ${img.src}`);
+      galleryImports.push({ ...img, imported: null });
+    }
+  }
+}
+
 const { Content } = await render(project);
 
 const {
@@ -79,15 +114,26 @@ const {
   year,
   duration,
   teamSize,
-  outcomeSummary,
+  client,
+  summary,
+  gallery,
+  videoUrl,
   overview,
   problem,
+  challenge,
+  brief,
+  research,
   constraints,
+  requirements,
   approach,
+  process,
   keyDecisions,
+  highlights,
   techStack,
+  tools,
   impact,
   learnings,
+  reflections,
   relatedProjects,
   relatedDecisions,
   status,
@@ -101,30 +147,62 @@ const statusConfig = {
 };
 const statusInfo = statusConfig[status || 'completed'];
 
+// Get the context section (problem, challenge, or brief)
+const contextSection = problem || challenge || brief;
+const contextLabel = problem ? 'Problem' : challenge ? 'Challenge' : 'Brief';
+
+// Get constraints or requirements
+const limitationsSection = constraints || requirements;
+const limitationsLabel = constraints ? 'Constraints' : 'Requirements';
+
+// Get approach or process
+const methodSection = approach || process;
+const methodLabel = approach ? 'Approach' : 'Process';
+
+// Get tools or tech stack
+const toolsSection = tools || techStack;
+const toolsLabel = techStack ? 'Tech Stack' : 'Tools';
+
 /**
  * Calculates reading time from all case study content
- * 
- * Combines all text sections including overview, problem, approach, decisions,
- * impact, learnings, and optional markdown body to estimate total reading time.
  */
 const allText = [
   overview,
-  problem,
-  approach,
-  ...constraints,
-  ...keyDecisions.map(d => `${d.decision} ${d.reasoning} ${d.alternatives?.join(' ') || ''}`),
-  impact.qualitative,
-  ...learnings,
+  contextSection,
+  methodSection,
+  ...(limitationsSection || []),
+  ...(keyDecisions?.map(d => `${d.decision} ${d.reasoning} ${d.alternatives?.join(' ') || ''}`) || []),
+  ...(highlights?.map(h => `${h.title} ${h.description} ${h.details?.join(' ') || ''}`) || []),
+  impact?.qualitative,
+  ...(learnings || []),
+  reflections,
+  research?.insights,
+  ...(research?.findings || []),
   project.body || '',
-].join(' ');
+].filter(Boolean).join(' ');
 const readingTime = formatReadingTime(calculateReadingTime(allText));
+
+// Build sections for TOC
+const sections: { id: string; label: string }[] = [];
+if (overview) sections.push({ id: 'overview', label: 'Overview' });
+if (contextSection) sections.push({ id: 'context', label: contextLabel });
+if (research) sections.push({ id: 'research', label: 'Research' });
+if (limitationsSection?.length) sections.push({ id: 'limitations', label: limitationsLabel });
+if (methodSection) sections.push({ id: 'method', label: methodLabel });
+if (keyDecisions?.length) sections.push({ id: 'key-decisions', label: 'Key Decisions' });
+if (highlights?.length) sections.push({ id: 'highlights', label: 'Highlights' });
+if (toolsSection?.length) sections.push({ id: 'tools', label: toolsLabel });
+if (gallery?.length) sections.push({ id: 'gallery', label: 'Gallery' });
+if (impact) sections.push({ id: 'result-impact', label: 'Result & Impact' });
+if (learnings?.length || reflections) sections.push({ id: 'learnings', label: learnings?.length ? 'Learnings' : 'Reflections' });
+if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Additional Context' });
 ---
 
 <BaseLayout>
   <SEO 
     slot="head"
     title={`${title} - Case Study`}
-    description={outcomeSummary}
+    description={summary}
     type="article"
   />
 
@@ -132,10 +210,10 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
     type="Project"
     data={{
       title,
-      outcomeSummary,
-      problem,
-      impact: impact.qualitative,
-      techStack,
+      outcomeSummary: summary,
+      problem: contextSection,
+      impact: impact?.qualitative,
+      techStack: toolsSection,
       year,
     }}
   />
@@ -167,101 +245,249 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
             <span class="meta-item">{teamSize} {teamSize === 1 ? 'person' : 'people'}</span>
           </>
         )}
+        {client && (
+          <>
+            <span class="meta-separator">·</span>
+            <span class="meta-item">Client: {client}</span>
+          </>
+        )}
         <span class="meta-separator">·</span>
         <span class="meta-item">{readingTime}</span>
       </div>
-      <p class="outcome-summary">{outcomeSummary}</p>
+      <p class="outcome-summary">{summary}</p>
     </header>
 
+    <!-- Table of Contents -->
+    {sections.length > 0 && (
+      <nav class="case-study-toc" aria-label="Case study sections">
+        <button class="toc-toggle" type="button" aria-expanded="false" aria-controls="case-study-toc-list">
+          <span class="toc-title">In This Case Study</span>
+          <span class="toc-count">{sections.length} sections</span>
+          <svg class="toc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <ul class="toc-list" id="case-study-toc-list">
+          {sections.map((section) => (
+            <li class="toc-item">
+              <a href={`#${section.id}`} class="toc-link" data-section={section.id}>
+                {section.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    )}
+
+    <!-- Hero Image -->
+    {heroImageImport && (
+      <figure class="hero-image">
+        <Image src={heroImageImport.default} alt={title} loading="eager" />
+      </figure>
+    )}
+
     <!-- Overview Section -->
-    <section class="case-study-section">
-      <h2>Overview</h2>
-      <p>{overview}</p>
-    </section>
+    {overview && (
+      <section class="case-study-section" id="overview">
+        <h2>Overview</h2>
+        <p>{overview}</p>
+      </section>
+    )}
 
-    <!-- Problem Section -->
-    <section class="case-study-section">
-      <h2>Problem</h2>
-      <p>{problem}</p>
-    </section>
+    <!-- Problem/Challenge/Brief Section -->
+    {contextSection && (
+      <section class="case-study-section" id="context">
+        <h2>{contextLabel}</h2>
+        <p>{contextSection}</p>
+      </section>
+    )}
 
-    <!-- Constraints Section -->
-    <section class="case-study-section">
-      <h2>Constraints</h2>
-      <ul class="constraints-list">
-        {constraints.map((constraint) => (
-          <li>{constraint}</li>
-        ))}
-      </ul>
-    </section>
+    <!-- Research Section (UX/Design) -->
+    {research && (
+      <section class="case-study-section" id="research">
+        <h2>Research</h2>
+        {research.methods && research.methods.length > 0 && (
+          <div class="research-methods">
+            <h3>Methods</h3>
+            <ul class="methods-list">
+              {research.methods.map((method) => (
+                <li>{method}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {research.findings && research.findings.length > 0 && (
+          <div class="research-findings">
+            <h3>Key Findings</h3>
+            <ul class="findings-list">
+              {research.findings.map((finding) => (
+                <li>{finding}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {research.insights && (
+          <div class="research-insights">
+            <h3>Insights</h3>
+            <p>{research.insights}</p>
+          </div>
+        )}
+      </section>
+    )}
 
-    <!-- Approach Section -->
-    <section class="case-study-section">
-      <h2>Approach</h2>
-      <p>{approach}</p>
-    </section>
+    <!-- Constraints/Requirements Section -->
+    {limitationsSection && limitationsSection.length > 0 && (
+      <section class="case-study-section" id="limitations">
+        <h2>{limitationsLabel}</h2>
+        <ul class="constraints-list">
+          {limitationsSection.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </section>
+    )}
 
-    <!-- Key Decisions Section -->
-    <section class="case-study-section">
-      <h2>Key Decisions</h2>
-      <div class="decisions-list">
-        {keyDecisions.map((decision) => (
-          <div class="decision-item">
-            <h3 class="decision-title">{decision.decision}</h3>
-            <div class="decision-reasoning">
-              <strong>Reasoning:</strong>
-              <p>{decision.reasoning}</p>
+    <!-- Approach/Process Section -->
+    {methodSection && (
+      <section class="case-study-section" id="method">
+        <h2>{methodLabel}</h2>
+        <p>{methodSection}</p>
+      </section>
+    )}
+
+    <!-- Key Decisions Section (Engineering style) -->
+    {keyDecisions && keyDecisions.length > 0 && (
+      <section class="case-study-section" id="key-decisions">
+        <h2>Key Decisions</h2>
+        <div class="decisions-list">
+          {keyDecisions.map((decision) => (
+            <div class="decision-item">
+              <h3 class="decision-title">{decision.decision}</h3>
+              <div class="decision-reasoning">
+                <strong>Reasoning:</strong>
+                <p>{decision.reasoning}</p>
+              </div>
+              {decision.alternatives && decision.alternatives.length > 0 && (
+                <div class="decision-alternatives">
+                  <strong>Alternatives considered:</strong>
+                  <ul>
+                    {decision.alternatives.map((alt) => (
+                      <li>{alt}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            {decision.alternatives && decision.alternatives.length > 0 && (
-              <div class="decision-alternatives">
-                <strong>Alternatives considered:</strong>
-                <ul>
-                  {decision.alternatives.map((alt) => (
-                    <li>{alt}</li>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Highlights Section (Flexible style) -->
+    {highlights && highlights.length > 0 && (
+      <section class="case-study-section" id="highlights">
+        <h2>Highlights</h2>
+        <div class="highlights-list">
+          {highlights.map((highlight) => (
+            <div class:list={['highlight-item', `highlight--${highlight.type}`]}>
+              <span class="highlight-type">{highlight.type}</span>
+              <h3 class="highlight-title">{highlight.title}</h3>
+              <p class="highlight-description">{highlight.description}</p>
+              {highlight.details && highlight.details.length > 0 && (
+                <ul class="highlight-details">
+                  {highlight.details.map((detail) => (
+                    <li>{detail}</li>
                   ))}
                 </ul>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
 
-    <!-- Tech Stack Section -->
-    <section class="case-study-section">
-      <h2>Tech Stack</h2>
-      <ul class="tech-stack-list">
-        {techStack.map((tech) => (
-          <li>{tech}</li>
-        ))}
-      </ul>
-    </section>
+    <!-- Tools/Tech Stack Section -->
+    {toolsSection && toolsSection.length > 0 && (
+      <section class="case-study-section" id="tools">
+        <h2>{toolsLabel}</h2>
+        <ul class="tech-stack-list">
+          {toolsSection.map((tech) => (
+            <li>{tech}</li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <!-- Gallery Section -->
+    {gallery && gallery.length > 0 && (
+      <section class="case-study-section" id="gallery">
+        <h2>Gallery</h2>
+        <div class="project-gallery">
+          {galleryImports.map((img) => (
+            <figure class="gallery-item">
+              {img.imported ? (
+                <Image src={img.imported.default} alt={img.alt} loading="lazy" />
+              ) : (
+                <img src={img.src} alt={img.alt} loading="lazy" />
+              )}
+              {img.caption && <figcaption>{img.caption}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Video Section -->
+    {videoUrl && (
+      <section class="case-study-section" id="video">
+        <h2>Video</h2>
+        <div class="video-embed">
+          <a href={videoUrl} target="_blank" rel="noopener noreferrer" class="video-link">
+            Watch project video →
+          </a>
+        </div>
+      </section>
+    )}
 
     <!-- Result/Impact Section -->
-    <section class="case-study-section">
-      <h2>Result & Impact</h2>
-      
-      {/* Display metrics with visualization */}
-      {impact.metrics && impact.metrics.length > 0 && (
-        <ImpactMetrics metrics={impact.metrics} />
-      )}
-      
-      <p class="impact-qualitative">{impact.qualitative}</p>
-    </section>
+    {impact && (
+      <section class="case-study-section" id="result-impact">
+        <h2>Result & Impact</h2>
+        
+        {impact.metrics && impact.metrics.length > 0 && (
+          <ImpactMetrics metrics={impact.metrics} />
+        )}
+        
+        {impact.qualitative && (
+          <p class="impact-qualitative">{impact.qualitative}</p>
+        )}
+      </section>
+    )}
 
     <!-- Learnings Section -->
-    <section class="case-study-section">
-      <h2>Learnings</h2>
-      <ul class="learnings-list">
-        {learnings.map((learning) => (
-          <li>{learning}</li>
-        ))}
-      </ul>
-    </section>
+    {learnings && learnings.length > 0 && (
+      <section class="case-study-section" id="learnings">
+        <h2>Learnings</h2>
+        <ul class="learnings-list">
+          {learnings.map((learning) => (
+            <li>{learning}</li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <!-- Reflections Section (narrative alternative) -->
+    {reflections && !learnings?.length && (
+      <section class="case-study-section" id="learnings">
+        <h2>Reflections</h2>
+        <p>{reflections}</p>
+      </section>
+    )}
 
     <!-- Additional MDX Content (if any) -->
-    {Content && (
-      <section class="case-study-content">
+    {project.body && project.body.trim().length > 0 && (
+      <section class="case-study-section case-study-content" id="additional-context">
+        <h2>Additional Context</h2>
         <Content />
       </section>
     )}
@@ -329,6 +555,7 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
 
     .case-study-meta {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.75rem;
       font-size: 0.9375rem;
@@ -344,6 +571,85 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
       font-size: 1.125rem;
       line-height: 1.6;
       color: var(--color-text-secondary);
+    }
+
+    /* TOC Styles */
+    .case-study-toc {
+      margin-bottom: 2rem;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .toc-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: var(--color-bg-secondary);
+      border: none;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .toc-title {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .toc-count {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-left: auto;
+    }
+
+    .toc-icon {
+      color: var(--color-text-muted);
+      transition: transform 0.2s ease;
+    }
+
+    .toc-toggle[aria-expanded="true"] .toc-icon {
+      transform: rotate(180deg);
+    }
+
+    .toc-list {
+      display: none;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .toc-list.is-open {
+      display: block;
+    }
+
+    .toc-link {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .toc-link:hover,
+    .toc-link.is-active {
+      background: var(--color-bg-secondary);
+      color: var(--color-text);
+    }
+
+    /* Hero Image */
+    .hero-image {
+      margin: 0 0 3rem;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .hero-image img {
+      width: 100%;
+      height: auto;
+      display: block;
     }
 
     .case-study-section {
@@ -363,16 +669,32 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
       color: var(--color-text-secondary);
     }
 
+    .case-study-section h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      margin-top: 1.5rem;
+      color: var(--color-text);
+    }
+
+    .case-study-section h3:first-child {
+      margin-top: 0;
+    }
+
     .constraints-list,
     .tech-stack-list,
-    .learnings-list {
+    .learnings-list,
+    .methods-list,
+    .findings-list {
       list-style: none;
       padding: 0;
     }
 
     .constraints-list li,
     .tech-stack-list li,
-    .learnings-list li {
+    .learnings-list li,
+    .methods-list li,
+    .findings-list li {
       font-size: 1.0625rem;
       line-height: 1.7;
       padding: 0.5rem 0;
@@ -383,13 +705,23 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
 
     .constraints-list li::before,
     .tech-stack-list li::before,
-    .learnings-list li::before {
+    .learnings-list li::before,
+    .methods-list li::before,
+    .findings-list li::before {
       content: "→";
       position: absolute;
       left: 0;
       color: var(--color-accent);
     }
 
+    /* Research Section */
+    .research-methods,
+    .research-findings,
+    .research-insights {
+      margin-bottom: 1.5rem;
+    }
+
+    /* Decisions List */
     .decisions-list {
       display: flex;
       flex-direction: column;
@@ -453,6 +785,122 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
       color: var(--color-accent);
     }
 
+    /* Highlights List */
+    .highlights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .highlight-item {
+      padding: 1.5rem;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-bg-secondary);
+      border-left: 3px solid var(--color-accent);
+    }
+
+    .highlight-type {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--color-bg-elevated);
+      color: var(--color-text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .highlight--decision .highlight-type { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+    .highlight--insight .highlight-type { color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
+    .highlight--milestone .highlight-type { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+    .highlight--feature .highlight-type { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+    .highlight--challenge .highlight-type { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+    .highlight-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--color-text);
+    }
+
+    .highlight-description {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 0;
+    }
+
+    .highlight-details {
+      list-style: none;
+      padding: 0;
+      margin-top: 1rem;
+    }
+
+    .highlight-details li {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      padding: 0.25rem 0;
+      padding-left: 1.25rem;
+      position: relative;
+      color: var(--color-text-secondary);
+    }
+
+    .highlight-details li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--color-accent);
+    }
+
+    /* Gallery */
+    .project-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .gallery-item {
+      margin: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .gallery-item figcaption {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      background: var(--color-bg-secondary);
+    }
+
+    /* Video */
+    .video-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      color: var(--color-text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .video-link:hover {
+      border-color: var(--color-text-muted);
+      background: var(--color-bg-elevated);
+    }
+
     .impact-qualitative {
       font-size: 1.125rem;
       line-height: 1.7;
@@ -487,9 +935,90 @@ const readingTime = formatReadingTime(calculateReadingTime(allText));
         font-size: 1rem;
       }
 
-      .decision-item {
+      .decision-item,
+      .highlight-item {
         padding: 1.25rem;
+      }
+
+      .project-gallery {
+        grid-template-columns: 1fr;
       }
     }
   </style>
+
+  <script>
+    function initTOC() {
+      const toc = document.querySelector('.case-study-toc');
+      if (!toc) return;
+
+      const toggle = toc.querySelector('.toc-toggle');
+      const list = toc.querySelector('.toc-list');
+      const links = toc.querySelectorAll('.toc-link');
+
+      if (!toggle || !list) return;
+
+      toggle.addEventListener('click', () => {
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        list.classList.toggle('is-open');
+      });
+
+      links.forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          if (!href) return;
+          
+          const target = document.querySelector(href);
+          if (!target) return;
+
+          const header = document.querySelector('.site-header') as HTMLElement;
+          const headerHeight = header?.offsetHeight || 0;
+          const targetPosition = target.getBoundingClientRect().top + window.scrollY - headerHeight - 20;
+          
+          window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+          history.pushState(null, '', href);
+        });
+      });
+
+      // Active state on scroll
+      const sections = Array.from(links).map((link) => {
+        const sectionId = link.getAttribute('data-section');
+        return sectionId ? document.getElementById(sectionId) : null;
+      }).filter((el) => el !== null);
+
+      function updateActiveLink() {
+        const header = document.querySelector('.site-header') as HTMLElement;
+        const headerHeight = header?.offsetHeight || 0;
+        const scrollPosition = window.scrollY + headerHeight + 100;
+        
+        let activeIndex = 0;
+        sections.forEach((section, index) => {
+          if (section.offsetTop <= scrollPosition) {
+            activeIndex = index;
+          }
+        });
+
+        links.forEach((link, index) => {
+          link.classList.toggle('is-active', index === activeIndex);
+        });
+      }
+
+      let ticking = false;
+      window.addEventListener('scroll', () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            updateActiveLink();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+
+      updateActiveLink();
+    }
+
+    initTOC();
+    document.addEventListener('astro:after-swap', initTOC);
+  </script>
 </BaseLayout>

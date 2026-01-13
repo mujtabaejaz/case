@@ -13,7 +13,7 @@
  * <ProjectCard
  *   title="E-commerce Platform Redesign"
  *   slug="ecommerce-redesign"
- *   outcomeSummary="Increased conversion rate by 45% and reduced cart abandonment"
+ *   summary="Increased conversion rate by 45% and reduced cart abandonment"
  *   role="Lead Frontend Developer"
  *   year={2024}
  *   techStack={['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Stripe']}
@@ -34,7 +34,7 @@ interface Props {
   slug: string;
   
   /** Brief summary of project outcomes or impact */
-  outcomeSummary: string;
+  summary: string;
   
   /** Your role in the project (e.g., "Lead Developer", "Technical Architect") */
   role: string;
@@ -42,7 +42,7 @@ interface Props {
   /** Year the project was completed */
   year: number;
   
-  /** Optional array of technologies used (displays max 4, shows "+N" for remaining) */
+  /** Optional array of technologies/tools used (displays max 4, shows "+N" for remaining) */
   techStack?: string[];
   
   /** Whether to display the featured badge (default: false) */
@@ -52,7 +52,7 @@ interface Props {
   status?: 'completed' | 'ongoing' | 'archived';
 }
 
-const { title, slug, outcomeSummary, role, year, techStack = [], featured = false, status = 'completed' } = Astro.props;
+const { title, slug, summary, role, year, techStack = [], featured = false, status = 'completed' } = Astro.props;
 
 // Show max 4 tech tags to keep card clean and consistent
 const displayTech = techStack.slice(0, 4);
@@ -86,7 +86,7 @@ const statusInfo = statusConfig[status];
   
   <Fragment slot="meta">{role} · {year}</Fragment>
   <Fragment slot="title">{title}</Fragment>
-  <Fragment slot="description">{outcomeSummary}</Fragment>
+  <Fragment slot="description">{summary}</Fragment>
   
   {displayTech.length > 0 && (
     <div slot="tags" class="tags-list">

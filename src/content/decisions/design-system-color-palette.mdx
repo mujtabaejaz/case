@@ -1,0 +1,87 @@
+---
+title: "Choosing the Design System Color Palette"
+date: 2025-12-13
+type: "design"
+context: "Our product had grown organically with inconsistent colors across features. We needed to establish a unified color system that would work across web, mobile, and marketing materials while meeting accessibility requirements."
+decision: "Adopt a semantic color system with 5 primary colors, each with 10 shades, using HSL color space for consistent relationships and WCAG 2.1 AA compliance as the baseline"
+alternatives:
+  - option: "Minimal palette (3 colors)"
+    pros:
+      - "Simpler to maintain"
+      - "Stronger brand recognition"
+      - "Easier for non-designers to use"
+    cons:
+      - "Limited flexibility for complex UIs"
+      - "Harder to convey different states and meanings"
+      - "May feel monotonous in data-heavy interfaces"
+  - option: "Extended palette (8+ colors)"
+    pros:
+      - "Maximum flexibility"
+      - "Rich visual variety"
+      - "Better for data visualization"
+    cons:
+      - "Harder to maintain consistency"
+      - "More decisions for designers"
+      - "Risk of visual chaos"
+  - option: "Semantic palette (5 colors with shades)"
+    pros:
+      - "Balance of flexibility and constraint"
+      - "Clear meaning for each color"
+      - "Systematic shade generation"
+    cons:
+      - "Requires upfront planning"
+      - "May need exceptions for edge cases"
+reasoning: "The semantic approach gives us enough colors to handle complex UIs while maintaining clear guidelines. Using HSL for shade generation ensures mathematical consistency. The 5 primary colors (brand, success, warning, error, neutral) cover all common UI needs."
+outcome:
+  status: "successful"
+  summary: "The color system has been adopted across all products and reduced design inconsistencies by 80%."
+  lessonsLearned:
+    - "Document not just the colors but when to use each one"
+    - "Provide Figma/code tokens from day one"
+    - "Plan for dark mode from the start"
+tags:
+  - "design-system"
+  - "visual-design"
+  - "accessibility"
+---
+
+## Color Selection Process
+
+We started by auditing existing colors across all products—we found 47 different blues alone! This highlighted the need for a systematic approach.
+
+The selection process involved:
+
+1. **Brand alignment**: Started with our primary brand color
+2. **Accessibility testing**: Ensured all combinations met WCAG AA
+3. **Semantic mapping**: Assigned meaning to each color family
+4. **Shade generation**: Used HSL to create consistent 10-shade scales
+
+## The Final Palette
+
+- **Brand (Blue)**: Primary actions, links, focus states
+- **Success (Green)**: Positive feedback, completion, growth
+- **Warning (Amber)**: Caution, pending states, attention
+- **Error (Red)**: Errors, destructive actions, alerts
+- **Neutral (Gray)**: Text, backgrounds, borders
+
+Each color has shades from 50 (lightest) to 900 (darkest).
+
+## Accessibility Considerations
+
+We made accessibility non-negotiable:
+
+- All text colors meet 4.5:1 contrast ratio minimum
+- Interactive elements meet 3:1 against backgrounds
+- Color is never the only indicator of meaning
+- Tested with color blindness simulators
+
+## Implementation
+
+The colors are available as:
+
+- **Design tokens** in Figma with semantic naming
+- **CSS custom properties** for web
+- **Swift/Kotlin constants** for mobile
+- **Tailwind config** for utility classes
+
+This ensures consistency from design to code.

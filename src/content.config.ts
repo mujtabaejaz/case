@@ -5,8 +5,8 @@
  * Uses Astro's Content Collections API with Zod for type-safe content management.
  * 
  * Collections:
- * - projects: Case studies with structured narrative format
- * - decisions: Architectural and technical decision records
+ * - projects: Flexible case studies supporting multiple portfolio types (engineering, design, creative, etc.)
+ * - decisions: Decision records with multiple formats (technical ADR, design, process, strategic)
  * - journey: Career timeline entries
  * - writing: Blog posts and articles
  * - uses: Tools, stack, and environment documentation
@@ -25,20 +25,25 @@ import { glob } from 'astro/loaders';
 /**
  * Projects (Case Studies) Collection
  * 
- * Structured case studies following a narrative format: Overview → Problem → 
- * Constraints → Approach → Key Decisions → Tech Stack → Impact → Learnings.
+ * Flexible case studies supporting multiple portfolio types:
+ * - Engineering: Technical projects with architecture decisions
+ * - Design: UX/UI projects with research and process
+ * - Creative: Writing, branding, and creative direction
+ * - General: Flexible format for any project type
  * 
  * Features:
- * - Required narrative sections for consistent storytelling
- * - Key decisions with reasoning and alternatives
- * - Impact metrics (quantitative and qualitative)
- * - Featured flag for homepage showcase
- * - Optional custom order for manual curation
- * - Related project and decision slugs for cross-referencing
+ * - Visual media support (hero image, gallery, video)
+ * - Flexible narrative sections (all optional except core fields)
+ * - Multiple terminology options (problem/challenge/brief, approach/process)
+ * - Research section for UX/design projects
+ * - Highlights system as alternative to key decisions
+ * - Impact metrics with before/after comparison
+ * - Client field for freelancer/agency portfolios
  */
 const projectsCollection = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/projects' }),
   schema: z.object({
+    // === CORE (Required) ===
     /** Project title */
     title: z.string(),
     
@@ -48,51 +53,108 @@ const projectsCollection = defineCollection({
     /** Year the project was completed */
     year: z.number(),
     
-    /** Project duration (e.g., "3 months", "1.5 years") */
-    duration: z.string().optional(),
+    /** Brief summary of outcomes and impact (generic name) */
+    summary: z.string(),
     
-    /** Team size for scope context */
-    teamSize: z.number().optional(),
+    // === VISUAL MEDIA (Optional) ===
+    /** Hero/cover image for the project */
+    heroImage: z.string().optional(),
     
-    /** Brief summary of outcomes and impact */
-    outcomeSummary: z.string(),
+    /** Gallery of project images */
+    gallery: z.array(z.object({
+      src: z.string(),
+      alt: z.string(),
+      caption: z.string().optional(),
+    })).optional(),
     
+    /** Video URL (YouTube, Vimeo, etc.) */
+    videoUrl: z.string().url().optional(),
+    
+    // === FLEXIBLE NARRATIVE SECTIONS ===
     /** High-level project overview */
-    overview: z.string(),
+    overview: z.string().optional(),
     
-    /** Problem being addressed */
-    problem: z.string(),
+    /** Problem being addressed (engineering terminology) */
+    problem: z.string().optional(),
+    
+    /** Challenge faced (general terminology) */
+    challenge: z.string().optional(),
+    
+    /** Project brief (creative/design terminology) */
+    brief: z.string().optional(),
     
     /** Project constraints and limitations */
-    constraints: z.array(z.string()),
+    constraints: z.array(z.string()).optional(),
     
-    /** Solution approach and strategy */
-    approach: z.string(),
+    /** Project requirements (alternative to constraints) */
+    requirements: z.array(z.string()).optional(),
     
-    /** Key technical decisions with reasoning */
+    /** Solution approach and strategy (engineering) */
+    approach: z.string().optional(),
+    
+    /** Design/creative process (design terminology) */
+    process: z.string().optional(),
+    
+    // === RESEARCH SECTION (UX/Design) ===
+    /** Research details for UX/design projects */
+    research: z.object({
+      /** Research methods used */
+      methods: z.array(z.string()).optional(),
+      /** Key research findings */
+      findings: z.array(z.string()).optional(),
+      /** Research insights summary */
+      insights: z.string().optional(),
+    }).optional(),
+    
+    // === KEY HIGHLIGHTS (Flexible) ===
+    /** Flexible highlights - alternative to keyDecisions */
+    highlights: z.array(z.object({
+      /** Type of highlight for styling */
+      type: z.enum(['decision', 'insight', 'milestone', 'feature', 'challenge']).default('insight'),
+      /** Highlight title */
+      title: z.string(),
+      /** Highlight description */
+      description: z.string(),
+      /** Additional details */
+      details: z.array(z.string()).optional(),
+    })).optional(),
+    
+    /** Key technical decisions with reasoning (engineering style) */
     keyDecisions: z.array(z.object({
       decision: z.string(),
       reasoning: z.string(),
       alternatives: z.array(z.string()).optional(),
-    })),
+    })).optional(),
     
-    /** Technologies and frameworks used */
-    techStack: z.array(z.string()),
+    // === TOOLS/STACK ===
+    /** Tools used (generic name) */
+    tools: z.array(z.string()).optional(),
     
+    /** Technologies and frameworks used (engineering terminology) */
+    techStack: z.array(z.string()).optional(),
+    
+    // === IMPACT/RESULTS ===
     /** Project impact and results */
     impact: z.object({
-      /** Quantitative metrics (optional) */
+      /** Quantitative metrics */
       metrics: z.array(z.object({
         label: z.string(),
         value: z.string(),
+        /** Previous value for before/after comparison */
+        previousValue: z.string().optional(),
       })).optional(),
       /** Qualitative impact description */
-      qualitative: z.string(),
-    }),
+      qualitative: z.string().optional(),
+    }).optional(),
     
-    /** Key learnings and takeaways */
-    learnings: z.array(z.string()),
+    // === LEARNINGS/REFLECTIONS ===
+    /** Key learnings and takeaways (list format) */
+    learnings: z.array(z.string()).optional(),
     
+    /** Reflections on the project (narrative format) */
+    reflections: z.string().optional(),
+    
+    // === META ===
     /** Whether to feature on homepage */
     featured: z.boolean().default(false),
     
@@ -102,6 +164,19 @@ const projectsCollection = defineCollection({
     /** Custom sort order (lower numbers first) */
     order: z.number().optional(),
     
+    /** Project duration (e.g., "3 months", "1.5 years") */
+    duration: z.string().optional(),
+    
+    /** Team size for scope context */
+    teamSize: z.number().optional(),
+    
+    /** Client name (for freelancer/agency portfolios) */
+    client: z.string().optional(),
+    
+    /** Project category for filtering */
+    category: z.string().optional(),
+    
+    // === RELATED ===
     /** Related project slugs for cross-referencing */
     relatedProjects: z.array(z.string()).optional(),
     
@@ -113,41 +188,96 @@ const projectsCollection = defineCollection({
 /**
  * Decisions Collection
  * 
- * Architectural and technical decision records documenting the context,
- * decision made, alternatives considered, and reasoning.
+ * Flexible decision records supporting multiple formats:
+ * - Technical: Full ADR style with pros/cons analysis
+ * - Design: Visual-focused with image comparisons
+ * - Process: Workflow and methodology decisions
+ * - Strategic: Business and direction decisions
+ * - Creative: Creative direction and style choices
  * 
  * Features:
- * - Context and decision documentation
- * - Alternatives with pros/cons analysis
- * - Reasoning explanation
- * - Optional tags for categorization
- * - Related project and decision slugs for cross-referencing
+ * - Multiple decision types with appropriate rendering
+ * - Flexible alternatives format (detailed or simple list)
+ * - Visual support for design decisions
+ * - Outcome tracking with lessons learned
+ * - Multiple terminology options for context
  */
 const decisionsCollection = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/decisions' }),
   schema: z.object({
+    // === CORE ===
     /** Decision title */
     title: z.string(),
     
     /** Date the decision was made */
     date: z.coerce.date(),
     
-    /** Context and background for the decision */
-    context: z.string(),
-    
     /** The decision that was made */
     decision: z.string(),
     
-    /** Alternative options considered */
+    // === TYPE ===
+    /** Decision type for conditional rendering */
+    type: z.enum([
+      'technical',   // ADR style - full pros/cons
+      'design',      // Design decision - visual focus
+      'process',     // Process/workflow decision
+      'strategic',   // Business/strategic
+      'creative',    // Creative direction
+    ]).default('technical'),
+    
+    // === FLEXIBLE CONTEXT ===
+    /** Context and background (technical terminology) */
+    context: z.string().optional(),
+    
+    /** Background information (general terminology) */
+    background: z.string().optional(),
+    
+    /** Situation description (alternative terminology) */
+    situation: z.string().optional(),
+    
+    // === ALTERNATIVES (Detailed Format) ===
+    /** Alternative options with pros/cons analysis */
     alternatives: z.array(z.object({
       option: z.string(),
       pros: z.array(z.string()).optional(),
       cons: z.array(z.string()).optional(),
-    })),
+      /** Image for visual comparison (design decisions) */
+      image: z.string().optional(),
+      /** Additional notes */
+      notes: z.string().optional(),
+    })).optional(),
     
-    /** Reasoning behind the decision */
-    reasoning: z.string(),
+    // === OPTIONS CONSIDERED (Simple Format) ===
+    /** Simple list of options considered (without pros/cons) */
+    optionsConsidered: z.array(z.string()).optional(),
     
+    // === REASONING ===
+    /** Reasoning behind the decision (technical) */
+    reasoning: z.string().optional(),
+    
+    /** Rationale for the decision (alternative terminology) */
+    rationale: z.string().optional(),
+    
+    // === OUTCOME ===
+    /** Decision outcome and follow-up */
+    outcome: z.object({
+      /** Current status of the decision */
+      status: z.enum(['successful', 'mixed', 'revised', 'pending']).optional(),
+      /** Summary of the outcome */
+      summary: z.string().optional(),
+      /** Lessons learned from this decision */
+      lessonsLearned: z.array(z.string()).optional(),
+    }).optional(),
+    
+    // === VISUAL SUPPORT ===
+    /** Images supporting the decision */
+    images: z.array(z.object({
+      src: z.string(),
+      alt: z.string(),
+      caption: z.string().optional(),
+    })).optional(),
+    
+    // === META ===
     /** Optional tags for categorization */
     tags: z.array(z.string()).optional(),
     

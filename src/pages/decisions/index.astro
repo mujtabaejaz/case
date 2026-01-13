@@ -70,7 +70,7 @@ const totalDecisions = sortedDecisions.length;
           <DecisionCard
             title={decision.data.title}
             slug={decision.id}
-            context={decision.data.context}
+            context={decision.data.context || decision.data.background || decision.data.situation || ''}
             date={decision.data.date}
             tags={decision.data.tags}
           />

@@ -88,10 +88,10 @@ const featuredCount = sortedProjects.filter(p => p.data.featured).length;
           <ProjectCard
             title={project.data.title}
             slug={project.id}
-            outcomeSummary={project.data.outcomeSummary}
+            summary={project.data.summary}
             role={project.data.role}
             year={project.data.year}
-            techStack={project.data.techStack}
+            techStack={project.data.techStack || project.data.tools}
             featured={project.data.featured}
             status={project.data.status}
           />

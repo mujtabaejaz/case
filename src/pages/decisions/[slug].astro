@@ -2,17 +2,24 @@
 /**
  * Decision Detail Page
  * 
- * Dynamic route that displays the full decision record for a specific decision entry.
- * Presents a structured view of the decision-making process including context, the
- * decision made, alternatives considered with pros/cons, reasoning, and optional
- * additional content.
+ * Dynamic route that displays the full decision record with flexible structure
+ * supporting multiple decision types (technical, design, process, strategic, creative).
+ * 
+ * Flexible Structure (sections render conditionally):
+ * 1. Context/Background/Situation - Why this decision was needed
+ * 2. Decision - The choice that was made
+ * 3. Alternatives - Options considered (detailed or simple format)
+ * 4. Reasoning/Rationale - Why this option was chosen
+ * 5. Images - Visual support (especially for design decisions)
+ * 6. Outcome - Results and lessons learned
+ * 7. Additional Content - MDX body
  * 
  * Features:
- * - Static path generation for all decision entries
- * - Structured decision presentation (Context → Decision → Alternatives → Reasoning)
- * - Alternatives comparison with pros/cons lists
- * - Tag display
- * - Optional markdown body content
+ * - Multiple decision types with appropriate styling
+ * - Flexible alternatives format (pros/cons or simple list)
+ * - Visual support for design decisions
+ * - Outcome tracking with status and lessons learned
+ * - Multiple terminology options
  * - SEO optimization with article type
  * - Scroll-to-top functionality
  * - Related content navigation
@@ -33,11 +40,6 @@ import type { GetStaticPaths } from 'astro';
 
 /**
  * Generates static paths for all decision entries
- * 
- * Queries the decisions content collection and creates a route for each entry
- * using the entry ID as the slug parameter.
- * 
- * @returns Array of path objects with params and props
  */
 export const getStaticPaths: GetStaticPaths = async () => {
   const decisions = await getCollection('decisions');
@@ -50,100 +52,216 @@ export const getStaticPaths: GetStaticPaths = async () => {
 type DecisionEntry = Awaited<ReturnType<typeof getCollection<'decisions'>>>[number];
 
 interface Props {
-  /** The decision entry from the content collection */
   decision: DecisionEntry;
 }
 
 const { decision } = Astro.props;
 const { Content } = await render(decision);
 
-/**
- * Formats the decision date for display
- * 
- * Uses US English locale with full date format.
- * Example output: "January 15, 2024"
- */
+const {
+  title,
+  date,
+  type,
+  context,
+  background,
+  situation,
+  decision: decisionText,
+  alternatives,
+  optionsConsidered,
+  reasoning,
+  rationale,
+  outcome,
+  images,
+  tags,
+  relatedProjects,
+  relatedDecisions,
+} = decision.data;
+
+// Get context section (context, background, or situation)
+const contextSection = context || background || situation;
+const contextLabel = context ? 'Context' : background ? 'Background' : 'Situation';
+
+// Get reasoning section
+const reasoningSection = reasoning || rationale;
+const reasoningLabel = reasoning ? 'Reasoning' : 'Rationale';
+
+// Type configuration for styling
+const typeConfig = {
+  technical: { label: 'Technical', class: 'type--technical' },
+  design: { label: 'Design', class: 'type--design' },
+  process: { label: 'Process', class: 'type--process' },
+  strategic: { label: 'Strategic', class: 'type--strategic' },
+  creative: { label: 'Creative', class: 'type--creative' },
+};
+const typeInfo = typeConfig[type || 'technical'];
+
+// Outcome status configuration
+const statusConfig = {
+  successful: { label: 'Successful', class: 'outcome--successful' },
+  mixed: { label: 'Mixed Results', class: 'outcome--mixed' },
+  revised: { label: 'Revised', class: 'outcome--revised' },
+  pending: { label: 'Pending', class: 'outcome--pending' },
+};
+
 const formattedDate = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   month: 'long',
   day: 'numeric'
-}).format(decision.data.date);
+}).format(date);
 ---
 
 <BaseLayout>
   <SEO 
     slot="head"
-    title={`${decision.data.title} - Decision Record`}
-    description={decision.data.context}
+    title={`${title} - Decision Record`}
+    description={contextSection || decisionText}
     type="article"
   />
 
   <main class="decision-page">
     <article class="decision-content">
       <header class="decision-header">
-        <time class="decision-date" datetime={decision.data.date.toISOString()}>
-          {formattedDate}
-        </time>
+        <div class="header-meta">
+          <time class="decision-date" datetime={date.toISOString()}>
+            {formattedDate}
+          </time>
+          <span class:list={['decision-type', typeInfo.class]}>
+            {typeInfo.label}
+          </span>
+        </div>
         
-        <h1 class="decision-title">{decision.data.title}</h1>
+        <h1 class="decision-title">{title}</h1>
         
-        {decision.data.tags && decision.data.tags.length > 0 && (
+        {tags && tags.length > 0 && (
           <div class="decision-tags">
-            {decision.data.tags.map((tag) => (
+            {tags.map((tag) => (
               <span class="tag">{tag}</span>
             ))}
           </div>
         )}
       </header>
 
-      <section class="decision-section">
-        <h2 class="section-label">Context</h2>
-        <p class="section-content">{decision.data.context}</p>
-      </section>
+      <!-- Context/Background/Situation Section -->
+      {contextSection && (
+        <section class="decision-section">
+          <h2 class="section-label">{contextLabel}</h2>
+          <p class="section-content">{contextSection}</p>
+        </section>
+      )}
 
+      <!-- Decision Section -->
       <section class="decision-section decision-made">
         <h2 class="section-label">Decision</h2>
-        <p class="section-content highlight">{decision.data.decision}</p>
+        <p class="section-content highlight">{decisionText}</p>
       </section>
 
-      <section class="decision-section">
-        <h2 class="section-label">Alternatives Considered</h2>
-        <div class="alternatives-list">
-          {decision.data.alternatives.map((alt) => (
-            <div class="alternative-item">
-              <h3 class="alternative-option">{alt.option}</h3>
-              <div class="alternative-details">
-                {alt.pros && alt.pros.length > 0 && (
-                  <div class="pros-cons">
-                    <span class="detail-label pros-label">Pros</span>
-                    <ul class="detail-list">
-                      {alt.pros.map((pro) => (
-                        <li>{pro}</li>
-                      ))}
-                    </ul>
-                  </div>
+      <!-- Alternatives Section (Detailed with Pros/Cons) -->
+      {alternatives && alternatives.length > 0 && (
+        <section class="decision-section">
+          <h2 class="section-label">Alternatives Considered</h2>
+          <div class="alternatives-list">
+            {alternatives.map((alt) => (
+              <div class="alternative-item">
+                <h3 class="alternative-option">{alt.option}</h3>
+                {alt.image && (
+                  <figure class="alternative-image">
+                    <img src={alt.image} alt={alt.option} loading="lazy" />
+                  </figure>
                 )}
-                {alt.cons && alt.cons.length > 0 && (
-                  <div class="pros-cons">
-                    <span class="detail-label cons-label">Cons</span>
-                    <ul class="detail-list">
-                      {alt.cons.map((con) => (
-                        <li>{con}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div class="alternative-details">
+                  {alt.pros && alt.pros.length > 0 && (
+                    <div class="pros-cons">
+                      <span class="detail-label pros-label">Pros</span>
+                      <ul class="detail-list">
+                        {alt.pros.map((pro) => (
+                          <li>{pro}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {alt.cons && alt.cons.length > 0 && (
+                    <div class="pros-cons">
+                      <span class="detail-label cons-label">Cons</span>
+                      <ul class="detail-list">
+                        {alt.cons.map((con) => (
+                          <li>{con}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                {alt.notes && (
+                  <p class="alternative-notes">{alt.notes}</p>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
-      <section class="decision-section">
-        <h2 class="section-label">Reasoning</h2>
-        <p class="section-content">{decision.data.reasoning}</p>
-      </section>
+      <!-- Options Considered Section (Simple List) -->
+      {optionsConsidered && optionsConsidered.length > 0 && !alternatives?.length && (
+        <section class="decision-section">
+          <h2 class="section-label">Options Considered</h2>
+          <ul class="options-list">
+            {optionsConsidered.map((option) => (
+              <li>{option}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
+      <!-- Reasoning/Rationale Section -->
+      {reasoningSection && (
+        <section class="decision-section">
+          <h2 class="section-label">{reasoningLabel}</h2>
+          <p class="section-content">{reasoningSection}</p>
+        </section>
+      )}
+
+      <!-- Images Section -->
+      {images && images.length > 0 && (
+        <section class="decision-section">
+          <h2 class="section-label">Visual Reference</h2>
+          <div class="decision-images">
+            {images.map((img) => (
+              <figure class="decision-image">
+                <img src={img.src} alt={img.alt} loading="lazy" />
+                {img.caption && <figcaption>{img.caption}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Outcome Section -->
+      {outcome && (outcome.status || outcome.summary || outcome.lessonsLearned?.length) && (
+        <section class="decision-section">
+          <h2 class="section-label">Outcome</h2>
+          <div class="outcome-content">
+            {outcome.status && (
+              <span class:list={['outcome-status', statusConfig[outcome.status].class]}>
+                {statusConfig[outcome.status].label}
+              </span>
+            )}
+            {outcome.summary && (
+              <p class="outcome-summary">{outcome.summary}</p>
+            )}
+            {outcome.lessonsLearned && outcome.lessonsLearned.length > 0 && (
+              <div class="lessons-learned">
+                <h3>Lessons Learned</h3>
+                <ul>
+                  {outcome.lessonsLearned.map((lesson) => (
+                    <li>{lesson}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      <!-- Additional MDX Content -->
       {decision.body && decision.body.trim().length > 0 && (
         <section class="decision-body prose">
           <Content />
@@ -151,8 +269,8 @@ const formattedDate = new Intl.DateTimeFormat('en-US', {
       )}
 
       <RelatedContent 
-        relatedProjects={decision.data.relatedProjects} 
-        relatedDecisions={decision.data.relatedDecisions} 
+        relatedProjects={relatedProjects} 
+        relatedDecisions={relatedDecisions} 
       />
 
       <BackLink href="/decisions" text="All decisions" />
@@ -178,11 +296,50 @@ const formattedDate = new Intl.DateTimeFormat('en-US', {
       padding-bottom: 2rem;
     }
 
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
     .decision-date {
-      display: block;
       font-size: 0.875rem;
       color: var(--color-text-muted);
-      margin-bottom: 0.75rem;
+    }
+
+    .decision-type {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.625rem;
+      border-radius: 4px;
+    }
+
+    .type--technical {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+    }
+
+    .type--design {
+      background: rgba(139, 92, 246, 0.15);
+      color: #8b5cf6;
+    }
+
+    .type--process {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .type--strategic {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+    }
+
+    .type--creative {
+      background: rgba(236, 72, 153, 0.15);
+      color: #ec4899;
     }
 
     .decision-title {
@@ -256,6 +413,18 @@ const formattedDate = new Intl.DateTimeFormat('en-US', {
       margin-bottom: 1rem;
     }
 
+    .alternative-image {
+      margin: 0 0 1rem;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .alternative-image img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
     .alternative-details {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -303,6 +472,136 @@ const formattedDate = new Intl.DateTimeFormat('en-US', {
       position: absolute;
       left: 0;
       color: var(--color-text-muted);
+    }
+
+    .alternative-notes {
+      margin-top: 1rem;
+      font-size: 0.9375rem;
+      font-style: italic;
+      color: var(--color-text-muted);
+    }
+
+    .options-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .options-list li {
+      font-size: 1.0625rem;
+      line-height: 1.7;
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      color: var(--color-text-secondary);
+    }
+
+    .options-list li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--color-accent);
+    }
+
+    /* Images */
+    .decision-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .decision-image {
+      margin: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+
+    .decision-image img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .decision-image figcaption {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      background: var(--color-bg-secondary);
+    }
+
+    /* Outcome */
+    .outcome-content {
+      padding: 1.25rem;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+    }
+
+    .outcome-status {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.625rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .outcome--successful {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .outcome--mixed {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+    }
+
+    .outcome--revised {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+    }
+
+    .outcome--pending {
+      background: rgba(115, 115, 115, 0.15);
+      color: var(--color-text-muted);
+    }
+
+    .outcome-summary {
+      font-size: 1.0625rem;
+      line-height: 1.7;
+      color: var(--color-text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .lessons-learned h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 0.75rem;
+    }
+
+    .lessons-learned ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .lessons-learned li {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      padding: 0.25rem 0;
+      padding-left: 1.25rem;
+      position: relative;
+      color: var(--color-text-secondary);
+    }
+
+    .lessons-learned li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--color-accent);
     }
 
     .decision-body {
@@ -382,6 +681,10 @@ const formattedDate = new Intl.DateTimeFormat('en-US', {
 
       .section-content {
         font-size: 1rem;
+      }
+
+      .decision-images {
+        grid-template-columns: 1fr;
       }
     }
   </style>

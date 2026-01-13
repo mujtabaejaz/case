@@ -12,6 +12,7 @@ Images are processed and optimized by Astro at build time.
 src/assets/
 ├── projects/
 │   ├── payment-system-architecture.png
+│   ├── banking-hero.webp
 │   └── search-dashboard.jpg
 ├── writing/
 │   └── api-diagram.png
@@ -41,7 +42,48 @@ public/
 - Open Graph images
 - Files that must keep exact format/size
 
-## Using Images in MDX
+## Using Images in Projects
+
+### Hero Image and Gallery
+
+For project case studies, use relative paths in frontmatter:
+
+```mdx
+---
+title: "Mobile Banking App Redesign"
+heroImage: "../../assets/projects/banking-hero.webp"
+gallery:
+  - src: "../../assets/projects/banking-wireframes.png"
+    alt: "Low-fidelity wireframes showing the new navigation structure"
+    caption: "Early wireframes exploring simplified navigation"
+  - src: "../../assets/projects/banking-final.png"
+    alt: "Final design screens"
+    caption: "Final design with new visual language"
+---
+```
+
+**Path Structure:**
+- From `src/content/projects/your-project.mdx`
+- Go up 2 levels: `../../`
+- Then into assets: `assets/projects/your-image.webp`
+
+The images will be automatically optimized by Astro's Image component at build time.
+
+### Using Public Folder Images
+
+If you prefer to use images from the `public/` folder (no optimization):
+
+```mdx
+---
+title: "My Project"
+heroImage: "/images/projects/hero.png"
+gallery:
+  - src: "/images/projects/screenshot-1.png"
+    alt: "Screenshot description"
+---
+```
+
+## Using Images in MDX Content
 
 ### Basic Markdown Image
 
@@ -92,6 +134,7 @@ import architectureDiagram from '@/assets/projects/architecture.png';
 
 Use descriptive, kebab-case names:
 - ✅ `payment-flow-diagram.png`
+- ✅ `banking-hero.webp`
 - ❌ `IMG_1234.png`
 - ❌ `Screenshot 2024-01-15.png`
 
@@ -111,6 +154,7 @@ alt="diagram"
 
 | Use Case | Recommended Size |
 |----------|------------------|
+| Hero images | 1600 x 900 px |
 | Project screenshots | 1200 x 800 px |
 | Architecture diagrams | 1000 x 600 px |
 | Blog post images | 800 x 450 px |
@@ -119,6 +163,7 @@ alt="diagram"
 ### File Size Guidelines
 
 Before optimization:
+- Hero images: < 800KB
 - Screenshots: < 500KB
 - Photos: < 1MB
 - Diagrams: < 200KB
@@ -127,13 +172,16 @@ Astro optimizes these further at build time.
 
 ## Troubleshooting
 
-### Image Not Found
+### Image Not Found (404 Error)
 
 ```
-Could not find image '@/assets/my-image.png'
+[404] /assets/projects/banking-hero.webp
 ```
 
-**Fix:** Check the file path and ensure the image exists in `src/assets/`.
+**Fix:** 
+1. Ensure the image file exists in `src/assets/projects/`
+2. Check the relative path in your frontmatter is correct
+3. Restart the dev server after adding new images
 
 ### Build Fails with Image Error
 
