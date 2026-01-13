@@ -59,6 +59,7 @@ gallery:
   - src: "../../assets/projects/banking-final.png"
     alt: "Final design screens"
     caption: "Final design with new visual language"
+videoUrl: "https://youtube.com/watch?v=xxx"  # Optional video link
 ---
 ```
 
@@ -68,6 +69,8 @@ gallery:
 - Then into assets: `assets/projects/your-image.webp`
 
 The images will be automatically optimized by Astro's Image component at build time.
+
+**Video Support:** Use `videoUrl` to link to external videos (YouTube, Vimeo, etc.). The link will be displayed in the project detail page.
 
 ### Using Public Folder Images
 
@@ -80,6 +83,28 @@ heroImage: "/images/projects/hero.png"
 gallery:
   - src: "/images/projects/screenshot-1.png"
     alt: "Screenshot description"
+---
+```
+
+**Note:** Images in `public/` are served as-is without optimization. For best performance, use `src/assets/` with relative paths.
+
+### Images in Decisions
+
+For design decisions with visual comparisons:
+
+```mdx
+---
+title: "Design System Color Palette"
+type: "design"
+alternatives:
+  - option: "Option 1"
+    image: "../../assets/decisions/option-1.png"
+  - option: "Option 2"
+    image: "../../assets/decisions/option-2.png"
+images:
+  - src: "../../assets/decisions/final-palette.png"
+    alt: "Final color palette"
+    caption: "The chosen color system"
 ---
 ```
 

@@ -24,11 +24,14 @@ Create a new file `src/content/projects/my-first-project.mdx`:
 
 ```yaml
 ---
+# Required fields
 title: "Your Project Name"
 role: "Full Stack Developer"
 year: 2024
+summary: "Key outcome of this project in one sentence"
+
+# Optional fields - add what fits your project
 featured: true
-outcomeSummary: "Key outcome of this project"
 overview: "Brief description of the project"
 problem: "What problem did you solve?"
 constraints:
@@ -53,6 +56,8 @@ learnings:
 
 Additional content about the project (optional).
 ```
+
+**Note:** Only `title`, `role`, `year`, and `summary` are required. All other fields are optional, so you can add what makes sense for your project.
 
 ## Minute 5: See the Results
 

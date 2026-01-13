@@ -76,12 +76,49 @@ order: 5   # Third position
 
 ### The Narrative Arc
 
+The flexible schema supports multiple narrative structures. Choose what fits your project:
+
+**Engineering/Technical:**
 1. **Problem** — What was broken or missing?
 2. **Constraints** — What made this hard?
 3. **Approach** — How did you tackle it?
-4. **Decisions** — What trade-offs did you make?
+4. **Key Decisions** — What trade-offs did you make?
 5. **Impact** — What changed because of your work?
 6. **Learnings** — What would you do differently?
+
+**Design/UX:**
+1. **Brief** — What was the design challenge?
+2. **Research** — What did you learn from users?
+3. **Process** — How did you approach the design?
+4. **Highlights** — Key insights, milestones, and features
+5. **Impact** — How did it improve the user experience?
+6. **Reflections** — What did you learn?
+
+**Creative/Brand:**
+1. **Challenge** — What did the client need?
+2. **Process** — Your creative approach
+3. **Highlights** — Key creative decisions and features
+4. **Impact** — How the work performed
+5. **Reflections** — Lessons learned
+
+**Product Management:**
+1. **Brief** — What was the product opportunity?
+2. **Requirements** — What constraints existed?
+3. **Approach** — How did you develop the product?
+4. **Highlights** — Key decisions, milestones, features
+5. **Impact** — Business and user outcomes
+6. **Learnings** — Product insights
+
+### Using Freeform Content
+
+The schema provides structured sections for the main narrative, but you can add freeform markdown content in the body for:
+- Additional technical details
+- Design system documentation
+- Process iterations
+- Team collaboration stories
+- Extended reflections
+
+This content renders naturally after the structured sections without a wrapper heading, allowing you to add depth and nuance to your case study.
 
 ### Metrics That Matter
 
@@ -91,16 +128,23 @@ Good metrics are:
 - **Business-relevant:** Connect technical wins to outcomes
 
 ```yaml
-metrics:
-  - label: "Processing Time"
-    value: "60% reduction (from 2.5s to 1s)"
-  - label: "Error Rate"
-    value: "0.1% (down from 2.3%)"
+impact:
+  metrics:
+    - label: "Processing Time"
+      value: "60% reduction (1s)"
+      previousValue: "2.5s"
+    - label: "Error Rate"
+      value: "0.1%"
+      previousValue: "2.3%"
+  qualitative: "Improved user satisfaction and reduced support tickets by 40%"
 ```
 
-### Decisions Section
+### Key Decisions vs Highlights
 
-The `keyDecisions` field separates a portfolio from a resume:
+**Use `keyDecisions` for:**
+- Technical/architectural decisions
+- Detailed pros/cons analysis
+- Engineering portfolios
 
 ```yaml
 keyDecisions:
@@ -111,9 +155,31 @@ keyDecisions:
       - "State machine with database transactions"
 ```
 
+**Use `highlights` for:**
+- Flexible project highlights
+- Design insights and milestones
+- Features and challenges
+- Non-engineering portfolios
+
+```yaml
+highlights:
+  - type: "insight"
+    title: "Simplified Navigation"
+    description: "Reduced main navigation from 8 items to 4"
+    details:
+      - "Home, Payments, Cards, More"
+      - "Personalized quick actions"
+  - type: "milestone"
+    title: "WCAG 2.1 AA Compliance"
+    description: "Achieved full accessibility compliance"
+  - type: "challenge"
+    title: "Legacy System Constraints"
+    description: "Worked around backend limitations"
+```
+
 **Tips:**
-- Include 2-4 key decisions per project
-- Always list alternatives considered
+- Include 2-4 key decisions or 3-6 highlights per project
+- Always provide context and reasoning
 - It's okay to mention decisions that didn't work out
 
 ## Draft Mode

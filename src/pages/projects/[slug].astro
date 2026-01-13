@@ -182,7 +182,7 @@ const allText = [
 ].filter(Boolean).join(' ');
 const readingTime = formatReadingTime(calculateReadingTime(allText));
 
-// Build sections for TOC
+// Build sections for TOC (only structured sections, not freeform content)
 const sections: { id: string; label: string }[] = [];
 if (overview) sections.push({ id: 'overview', label: 'Overview' });
 if (contextSection) sections.push({ id: 'context', label: contextLabel });
@@ -195,7 +195,6 @@ if (toolsSection?.length) sections.push({ id: 'tools', label: toolsLabel });
 if (gallery?.length) sections.push({ id: 'gallery', label: 'Gallery' });
 if (impact) sections.push({ id: 'result-impact', label: 'Result & Impact' });
 if (learnings?.length || reflections) sections.push({ id: 'learnings', label: learnings?.length ? 'Learnings' : 'Reflections' });
-if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Additional Context' });
 ---
 
 <BaseLayout>
@@ -484,12 +483,11 @@ if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Addi
       </section>
     )}
 
-    <!-- Additional MDX Content (if any) -->
+    <!-- Freeform MDX Content (no wrapper heading) -->
     {project.body && project.body.trim().length > 0 && (
-      <section class="case-study-section case-study-content" id="additional-context">
-        <h2>Additional Context</h2>
+      <div class="case-study-freeform">
         <Content />
-      </section>
+      </div>
     )}
 
     <!-- Related Content -->
@@ -797,7 +795,6 @@ if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Addi
       border: 1px solid var(--color-border);
       border-radius: 8px;
       background: var(--color-bg-secondary);
-      border-left: 3px solid var(--color-accent);
     }
 
     .highlight-type {
@@ -806,18 +803,35 @@ if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Addi
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding: 0.2rem 0.5rem;
+      padding: 0.25rem 0.625rem;
       border-radius: 4px;
-      background: var(--color-bg-elevated);
-      color: var(--color-text-muted);
       margin-bottom: 0.75rem;
     }
 
-    .highlight--decision .highlight-type { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
-    .highlight--insight .highlight-type { color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
-    .highlight--milestone .highlight-type { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-    .highlight--feature .highlight-type { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-    .highlight--challenge .highlight-type { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+    .highlight--decision .highlight-type { 
+      color: #3b82f6; 
+      background: rgba(59, 130, 246, 0.1); 
+    }
+    
+    .highlight--insight .highlight-type { 
+      color: #8b5cf6; 
+      background: rgba(139, 92, 246, 0.1); 
+    }
+    
+    .highlight--milestone .highlight-type { 
+      color: #22c55e; 
+      background: rgba(34, 197, 94, 0.1); 
+    }
+    
+    .highlight--feature .highlight-type { 
+      color: #f59e0b; 
+      background: rgba(245, 158, 11, 0.1); 
+    }
+    
+    .highlight--challenge .highlight-type { 
+      color: #ef4444; 
+      background: rgba(239, 68, 68, 0.1); 
+    }
 
     .highlight-title {
       font-size: 1.125rem;
@@ -914,6 +928,108 @@ if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Addi
       color: var(--color-text-secondary);
     }
 
+    /* Freeform content styling - natural extension of structured sections */
+    .case-study-freeform {
+      margin-top: 3rem;
+      font-size: 1.0625rem;
+      line-height: 1.7;
+      color: var(--color-text-secondary);
+    }
+
+    .case-study-freeform :global(h2) {
+      font-size: 1.75rem;
+      margin-top: 3rem;
+      margin-bottom: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--color-text);
+    }
+
+    .case-study-freeform :global(h2:first-child) {
+      margin-top: 0;
+    }
+
+    .case-study-freeform :global(h3) {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--color-text);
+    }
+
+    .case-study-freeform :global(p) {
+      margin-bottom: 1.25rem;
+    }
+
+    .case-study-freeform :global(ul),
+    .case-study-freeform :global(ol) {
+      margin-bottom: 1.25rem;
+      padding-left: 1.5rem;
+    }
+
+    .case-study-freeform :global(li) {
+      margin-bottom: 0.5rem;
+    }
+
+    .case-study-freeform :global(strong) {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+
+    .case-study-freeform :global(code) {
+      font-size: 0.9em;
+      padding: 0.2em 0.4em;
+      background: var(--color-bg-secondary);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .case-study-freeform :global(pre) {
+      padding: 1.25rem;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+
+    .case-study-freeform :global(pre code) {
+      padding: 0;
+      background: none;
+    }
+
+    .case-study-freeform :global(blockquote) {
+      border-left: 3px solid var(--color-accent);
+      padding-left: 1.25rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+      color: var(--color-text-secondary);
+    }
+
+    .case-study-freeform :global(hr) {
+      border: none;
+      border-top: 1px solid var(--color-border);
+      margin: 2rem 0;
+    }
+
+    .case-study-freeform :global(table) {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+    }
+
+    .case-study-freeform :global(th),
+    .case-study-freeform :global(td) {
+      padding: 0.75rem;
+      border: 1px solid var(--color-border);
+      text-align: left;
+    }
+
+    .case-study-freeform :global(th) {
+      background: var(--color-bg-secondary);
+      font-weight: 600;
+    }
+
     @media (max-width: 768px) {
       .case-study {
         padding: 1.5rem 1rem;
@@ -942,6 +1058,19 @@ if (project.body?.trim()) sections.push({ id: 'additional-context', label: 'Addi
 
       .project-gallery {
         grid-template-columns: 1fr;
+      }
+
+      /* Freeform content responsive styling */
+      .case-study-freeform :global(h2) {
+        font-size: 1.5rem;
+      }
+
+      .case-study-freeform :global(h3) {
+        font-size: 1.125rem;
+      }
+
+      .case-study-freeform :global(p) {
+        font-size: 1rem;
       }
     }
   </style>

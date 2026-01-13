@@ -46,7 +46,8 @@ Overview of the codebase organization.
 | `BaseLayout.astro` | All pages (head, scripts, theme) |
 | `PageLayout.astro` | Standard pages |
 | `ArticleLayout.astro` | Blog posts |
-| `CaseStudyLayout.astro` | Project detail pages |
+
+**Note:** Project and decision detail pages use `BaseLayout` directly with page-specific styles.
 
 ### Components
 

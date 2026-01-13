@@ -11,7 +11,8 @@ Layouts are in `src/layouts/`:
 | BaseLayout.astro | All pages (head, scripts, theme) |
 | PageLayout.astro | Standard pages |
 | ArticleLayout.astro | Blog posts |
-| CaseStudyLayout.astro | Project detail pages |
+
+**Note:** Project detail pages (`/projects/[slug]`) use `BaseLayout` directly with inline styles for maximum flexibility.
 
 ### Changing Content Width
 
